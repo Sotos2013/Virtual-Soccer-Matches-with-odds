@@ -107,41 +107,15 @@ function showPostMatch() {
   setTimeout(startCountdown, 5000); // Αναμονή 5 δευτερολέπτων πριν την αντίστροφη μέτρηση
 }
 
-function resetMatch() {
-  // Reset the score
-  score = {
-    [team1]: 0,
-    [team2]: 0
-  };
-  currentPhase = 0;
-  totalPhases = Math.floor(Math.random() * 6) + 5; // Νέος τυχαίος αριθμός φάσεων
-  team1 = getRandomDifferent(allTeams);
-  team2 = getRandomDifferent(allTeams, team1);
-  teams = [team1, team2];
-  // Update odds (you can randomize or change these as needed)
-  odds = {
-    [team1]: (Math.random() * (4 - 1.5) + 1.5).toFixed(2),
-    draw: (Math.random() * (3.5 - 2) + 2).toFixed(2),
-    [team2]: (Math.random() * (4 - 1.5) + 1.5).toFixed(2),
-    over: (Math.random() * (2.5 - 1.5) + 1.5).toFixed(2),
-    under: (Math.random() * (2.5 - 1.5) + 1.5).toFixed(2),
-    exact: (Math.random() * (20 - 5) + 5).toFixed(2)
-  };
-
-  // Hide the post-match div and show pre-match div
-  document.getElementById("postmatch").style.display = "none";
-  showPreMatch();
-}
-
 function startCountdown() {
   var countdownDiv = document.getElementById("countdown");
   countdownDiv.style.display = "block";
-  var timeLeft = 60;
+  var timeLeft = 10;  // Ξεκινάμε την αντίστροφη μέτρηση από 10 δευτερόλεπτα
   var countdownTimer = setInterval(function() {
     if (timeLeft <= 0) {
       clearInterval(countdownTimer);
       countdownDiv.style.display = "none";
-      resetMatch();
+      resetMatch();  // Καλούμε το resetMatch μόλις η αντίστροφη μέτρηση τελειώσει
     }
     countdownDiv.innerHTML = "Next match starts in: " + timeLeft + "s";
     timeLeft -= 1;
@@ -177,18 +151,31 @@ var currentPhase = 0;
 var isHalftime = false;
 var side1 = true;
 
-function updateScoreboard() {
-  var minute = currentPhase < Math.floor(totalPhases / 2) ? currentPhase + 1 : currentPhase - Math.floor(totalPhases / 2) + 46;
+function updateScoreboard(reset = false) {
+  var minute;
+  if (reset) {
+    minute = 0;  // Ξεκινάμε από το 0ο λεπτό
+  } else {
+    minute = currentPhase < Math.floor(totalPhases / 2) ? currentPhase + 1 : currentPhase - Math.floor(totalPhases / 2) + 46;
+  }
+
+  // Ενημέρωση του scoreboard με τα σωστά ονόματα ομάδων και το σκορ
   scoreboard.innerHTML = decodeURIComponent(team1) + ": " + score[team1] + " - " + decodeURIComponent(team2) + ": " + score[team2] + " | Minute: " + minute;
 }
 
+
 function startMatch() {
+  // Hide the pre-match screen and show the video and scoreboard
   document.getElementById("prematch").style.display = "none";
   document.getElementById("homevideo").style.display = "block";
-  document.getElementById("scoreboard").style.display = "block"; // Show the scoreboard
+  document.getElementById("scoreboard").style.display = "block";
+  
+  // Set the scoreboard to 0-0 and update with new teams
+  updateScoreboard(true); // Ξεκινάει από το 0-0 και το πρώτο λεπτό
+  
+  // Start running the match simulation
   run();
 }
-
 function run() {
   if (currentPhase >= totalPhases) {
     showMessage("Match Ended");
@@ -216,14 +203,11 @@ function run() {
     score[team]++;
   }
 
-  var side = "";
-  if (team === team1) {
-    side = side1 ? "side_1" : "side_2";
-  } else {
-    side = side1 ? "side_2" : "side_1";
-  }
+  var side = (team === team1) ? (side1 ? "side_1" : "side_2") : (side1 ? "side_2" : "side_1");
 
-  var nextVideo = "https://vodgames.inspiredvirgo.com/football/video/default/uk/" + team1 + "-" + team2 + "/" + team + "/clip_" + r + "_sunny_" + side + "_" + thing + ".mp4";
+  var selectedTeam = Math.random() > 0.5 ? team1 : team2;  // Επιλέγουμε τυχαία την ομάδα
+  var nextVideo = "https://vodgames.inspiredvirgo.com/football/video/default/uk/" + team1 + "-" + team2 + "/" + selectedTeam + "/clip_" + r + "_sunny_" + side + "_" + thing + ".mp4";
+
 
   videoPlayer.src = nextVideo;
   videoPlayer.play();
@@ -237,16 +221,64 @@ videoPlayer.addEventListener("ended", function() {
 }, true);
 
 // Διαχειριστείτε σφάλματα βίντεο
+var retryCount = 0; // Μετρητής προσπαθειών
+
 videoPlayer.addEventListener("error", function() {
-  // Try a different random video if there is an error
-  var r = getRandomDifferent(arr);
-  var nextVideo = "https://vodgames.inspiredvirgo.com/football/video/default/uk/" + team1 + "-" + team2 + "/" + team + "/clip_" + r + "_sunny_" + side + "_" + thing + ".mp4";
-  videoPlayer.src = nextVideo;
-  videoPlayer.play();
+  if (retryCount < 2) {  // Περιορίζουμε τις προσπάθειες σε 3
+    // Try a different random video if there is an error
+    var r = getRandomDifferent(arr);
+    var thing = getRandomDifferent(things);
+    var side = (team === team1) ? (side1 ? "side_1" : "side_2") : (side1 ? "side_2" : "side_1");
+    
+    var nextVideo = "https://vodgames.inspiredvirgo.com/football/video/default/uk/" + team1 + "-" + team2 + "/" + team + "/clip_" + r + "_sunny_" + side + "_" + thing + ".mp4";
+    
+    videoPlayer.src = nextVideo;
+    videoPlayer.play();
+    
+    retryCount++; // Αυξάνουμε τον μετρητή προσπαθειών
+  } else {
+    showMessage("Video not available. Skipping to next phase.");
+    retryCount = 0; // Επαναφορά μετρητή για την επόμενη φάση
+    run(); // Προχωράμε στην επόμενη φάση
+  }
 }, true);
 
 // Αρχική ανανέωση πίνακα σκορ
 updateScoreboard();
+
+function resetMatch() {
+  console.log("Resetting the match...");
+
+  // Reset ομάδες, σκορ και odds για το νέο ματς
+  team1 = getRandomDifferent(allTeams);
+  team2 = getRandomDifferent(allTeams, team1);
+  teams = [team1, team2];
+  
+  score = {
+    [team1]: 0,
+    [team2]: 0
+  };
+
+  odds = {
+    [team1]: (Math.random() * (4 - 1.5) + 1.5).toFixed(2),
+    draw: (Math.random() * (3.5 - 2) + 2).toFixed(2),
+    [team2]: (Math.random() * (4 - 1.5) + 1.5).toFixed(2),
+    over: (Math.random() * (2.5 - 1.5) + 1.5).toFixed(2),
+    under: (Math.random() * (2.5 - 1.5) + 1.5).toFixed(2),
+    exact: (Math.random() * (20 - 5) + 5).toFixed(2)
+  };
+
+  // Επαναφορά φάσεων και ενημέρωση του πίνακα σκορ
+  currentPhase = 0;
+  totalPhases = Math.floor(Math.random() * 6) + 5;  // Νέος τυχαίος αριθμός φάσεων για το νέο ματς
+  
+  updateScoreboard(true);  // Ενημέρωση του πίνακα σκορ για το νέο ματς
+
+  // Εμφανίζουμε την προεπισκόπηση του νέου ματς
+  document.getElementById("postmatch").style.display = "none";
+  showPreMatch();  // Καλούμε τη συνάρτηση για να ξεκινήσει η προεπισκόπηση του νέου ματς
+}
+
 </script>
 </body>
 </html>
