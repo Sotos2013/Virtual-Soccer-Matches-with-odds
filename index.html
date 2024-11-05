@@ -189,7 +189,7 @@ function run() {
     setTimeout(function() {
       side1 = !side1; // Αλλαγή πλευρών
       isHalftime = false;
-      currentPhase++; // Προχωράμε στην επόμενη φάση μετά το ημίχρονο
+      currentPhase++;
       run();
     }, 3000);
     return;
@@ -198,21 +198,21 @@ function run() {
   var r = getRandomDifferent(arr);
   var thing = getRandomDifferent(things);
   var team = getRandomDifferent(teams);
-
+  
   if (thing === "Goal") {
     score[team]++;
   }
 
+  // Ορίζουμε τις πλευρές ανάλογα με το ποια ομάδα είναι και σε ποια πλευρά βρίσκεται
   var side = (team === team1) ? (side1 ? "side_1" : "side_2") : (side1 ? "side_2" : "side_1");
 
-  var selectedTeam = Math.random() > 0.5 ? team1 : team2;  // Επιλέγουμε τυχαία την ομάδα
-  var nextVideo = "https://vodgames.inspiredvirgo.com/football/video/default/uk/" + team1 + "-" + team2 + "/" + selectedTeam + "/clip_" + r + "_sunny_" + side + "_" + thing + ".mp4";
-
+  var nextVideo = "https://vodgames.inspiredvirgo.com/football/video/default/uk/" + team1 + "-" + team2 + "/" + team + "/clip_" + r + "_sunny_" + side + "_" + thing + ".mp4";
 
   videoPlayer.src = nextVideo;
   videoPlayer.play();
   currentPhase++;
 }
+
 
 // Ανανεώστε τον πίνακα σκορ όταν το βίντεο τελειώσει
 videoPlayer.addEventListener("ended", function() {
@@ -228,7 +228,7 @@ videoPlayer.addEventListener("error", function() {
     // Try a different random video if there is an error
     var r = getRandomDifferent(arr);
     var thing = getRandomDifferent(things);
-    var side = (team === team1) ? (side1 ? "side_1" : "side_2") : (side1 ? "side_2" : "side_1");
+    //var side = (team === team1) ? (side1 ? "side_1" : "side_2") : (side1 ? "side_2" : "side_1");
     
     var nextVideo = "https://vodgames.inspiredvirgo.com/football/video/default/uk/" + team1 + "-" + team2 + "/" + team + "/clip_" + r + "_sunny_" + side + "_" + thing + ".mp4";
     
