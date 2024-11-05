@@ -39,16 +39,27 @@
   display: none;
 }
 </style>
-<div id="prematch"></div>
-<div id="scoreboard"></div>
-<div id="postmatch"></div>
-<div id="message"></div>
-<div id="countdown"></div>
-<video id="homevideo" autoplay muted>
+<div id="prematch" role="region" aria-labelledby="prematchHeading">
+  <h2 id="prematchHeading" style="display: none;">Pre-Match Information</h2>
+</div>
+<div id="scoreboard" role="region" aria-labelledby="scoreboardHeading">
+  <h2 id="scoreboardHeading" style="display: none;">Match Scoreboard</h2>
+</div>
+<div id="postmatch" role="region" aria-labelledby="postmatchHeading">
+  <h2 id="postmatchHeading" style="display: none;">Post-Match Results</h2>
+</div>
+<div id="message" role="alert"></div>
+<div id="countdown" role="region" aria-labelledby="countdownHeading">
+  <h2 id="countdownHeading" style="display: none;">Next Match Countdown</h2>
+</div>
+<video id="homevideo" autoplay>
   <source id="ss" src="" type="video/mp4">
 </video>
 
 <script>
+  let userBalance = 100; // Starting balance for virtual money
+  let userBet = { amount: 0, choice: null }; // Stores the user's bet details
+
 function getRandomDifferent(arr, last = undefined, lastt = undefined) {
   if (arr.length === 0) {
     return null;
@@ -62,6 +73,19 @@ function getRandomDifferent(arr, last = undefined, lastt = undefined) {
     return arr[num];
   }
 }
+// Λίστα με όλα τα επιτρεπόμενα κλιπς από 1 έως 49, εξαιρώντας τα 14, 27, 28, και 29
+const allowedClips = [];
+for (let i = 1; i <= 49; i++) {
+  if (![14, 27, 28, 29].includes(i)) {
+    allowedClips.push(i);
+  }
+}
+
+// Συνάρτηση για να επιλέγουμε τυχαίο κλιπ από τη λίστα των επιτρεπόμενων
+function getRandomClip() {
+  const randomIndex = Math.floor(Math.random() * allowedClips.length);
+  return allowedClips[randomIndex];
+}
 
 function showMessage(msg) {
   var messageDiv = document.getElementById("message");
@@ -71,41 +95,147 @@ function showMessage(msg) {
     messageDiv.style.display = "none";
   }, 3000);
 }
+function placeBet(choice) {
+    let betAmount = parseFloat(document.getElementById("betAmount").value);
 
-function showPreMatch() {
-  var prematchDiv = document.getElementById("prematch");
-  prematchDiv.style.display = "block";
-  document.getElementById("scoreboard").style.display = "none"; // Hide the scoreboard
-  prematchDiv.innerHTML = "<h2>Επόμενος Αγώνας</h2>" +
-    "<p>" + decodeURIComponent(team1) + " vs " + decodeURIComponent(team2) + "</p>" +
-    "<p>Αποδόσεις:</p>" +
-    "<ul>" +
-      "<li>1: " + odds[team1] + "</li>" +
-      "<li>X: " + odds.draw + "</li>" +
-      "<li>2: " + odds[team2] + "</li>" +
-      "<li>Over: " + odds.over + "</li>" +
-      "<li>Under: " + odds.under + "</li>" +
-      "<li>Ακριβές Σκορ: " + odds.exact + "</li>" +
-    "</ul>";
-  setTimeout(startMatch, 5000); // Αναμονή 5 δευτερολέπτων πριν την έναρξη του αγώνα
-}
+    if (isNaN(betAmount) || betAmount <= 0) {
+      alert("Please enter a valid bet amount.");
+      return;
+    }
 
+    if (betAmount > userBalance) {
+      alert("Insufficient balance to place this bet.");
+      return;
+    }
+
+    userBalance -= betAmount;
+    document.getElementById("userBalance").textContent = userBalance;
+
+    userBet = { amount: betAmount, choice: choice };
+
+    alert("Bet placed on " + choice + " with $" + betAmount);
+  }
+
+  function showPreMatch() {
+    var prematchDiv = document.getElementById("prematch");
+    prematchDiv.style.display = "block";
+
+    prematchDiv.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="text-align: center;">
+          <span style="font-size: 24px; color: white;">${team1}</span>
+          <div style="background-color: lightblue; padding: 10px; border-radius: 5px;">
+            <span style="font-size: 30px;">1</span><br>
+            <span style="font-size: 24px;">${odds[team1]}</span>
+            <button onclick="placeBet('1')">Bet</button>
+          </div>
+        </div>
+        <div style="text-align: center;">
+          <span style="font-size: 36px; color: white;">V</span>
+        </div>
+        <div style="text-align: center;">
+          <span style="font-size: 24px; color: white;">${team2}</span>
+          <div style="background-color: purple; padding: 10px; border-radius: 5px;">
+            <span style="font-size: 30px;">2</span><br>
+            <span style="font-size: 24px;">${odds[team2]}</span>
+            <button onclick="placeBet('2')">Bet</button>
+          </div>
+        </div>
+      </div>
+      <div style="text-align: center; margin-top: 20px;">
+        <span style="font-size: 24px; color: white;">1</span> <span>${odds[team1]}</span> | 
+        <span style="font-size: 24px; color: white;">X</span> <span>${odds.draw}</span> | 
+        <span style="font-size: 24px; color: white;">2</span> <span>${odds[team2]}</span>
+        <button onclick="placeBet('X')">Bet</button>
+      </div>
+      <div style="text-align: center; margin-top: 20px;">
+        <h3>Score Betting</h3>
+        <button onclick="placeBet('2-1')">2-1</button>
+        <button onclick="placeBet('1-2')">1-2</button>
+        <button onclick="placeBet('0-0')">0-0</button>
+        <button onclick="placeBet('1-1')">1-1</button>
+      </div>
+      <div style="text-align: center; margin-top: 20px;">
+        <h3>Half-Time Score Betting</h3>
+        <button onclick="placeBet('HT-1-0')">1-0</button>
+        <button onclick="placeBet('HT-0-1')">0-1</button>
+        <button onclick="placeBet('HT-0-0')">0-0</button>
+        <button onclick="placeBet('HT-1-1')">1-1</button>
+      </div>
+      <div style="text-align: center; margin-top: 20px;">
+        <h3>Over/Under Betting</h3>
+        <button onclick="placeBet('OVER_2.5')">Over 2.5</button> <span>${odds.over}</span>
+        <button onclick="placeBet('UNDER_2.5')">Under 2.5</button> <span>${odds.under}</span>
+      </div>
+      <div id="timer" style="font-size: 24px; color: yellow; text-align: center; margin-top: 20px;">
+        Starting in: <span id="countdownTimer">60</span>s
+      </div>
+      <div style="text-align: center; margin-top: 20px;">
+        <p>Balance: $<span id="userBalance">${userBalance}</span></p>
+        <input type="number" id="betAmount" placeholder="Enter bet amount" />
+      </div>
+    `;
+
+    // Countdown timer for 1 minute
+    let timeLeft = 60;
+    var countdownTimer = setInterval(function () {
+      document.getElementById("countdownTimer").textContent = timeLeft;
+      if (timeLeft <= 0) {
+        clearInterval(countdownTimer);
+        startMatch();
+      }
+      timeLeft -= 1;
+    }, 1000);
+  }
+  
 function showPostMatch() {
   var postmatchDiv = document.getElementById("postmatch");
-  postmatchDiv.style.display = "block";
-  postmatchDiv.innerHTML = "<h2>Αποτελέσματα Αγώνα</h2>" +
-    "<p>" + decodeURIComponent(team1) + ": " + score[team1] + " - " + decodeURIComponent(team2) + ": " + score[team2] + "</p>" +
-    "<p>Αποδόσεις που κέρδισαν:</p>" +
-    "<ul>" +
-      "<li>1: " + odds[team1] + "</li>" +
-      "<li>X: " + odds.draw + "</li>" +
-      "<li>2: " + odds[team2] + "</li>" +
-      "<li>Over: " + odds.over + "</li>" +
-      "<li>Under: " + odds.under + "</li>" +
-      "<li>Ακριβές Σκορ: " + odds.exact + "</li>" +
-    "</ul>";
-  setTimeout(startCountdown, 5000); // Αναμονή 5 δευτερολέπτων πριν την αντίστροφη μέτρηση
+    postmatchDiv.style.display = "block";
+
+    // Determine the match result
+    let result;
+    if (score[team1] > score[team2]) result = '1';
+    else if (score[team2] > score[team1]) result = '2';
+    else result = 'X';
+
+    // Check if the user's bet was successful for the match result
+    if (userBet.choice === result) {
+        userBalance += userBet.amount * odds[userBet.choice]; // Payout calculation
+        showMessage(`Congratulations! You won the match bet! New balance: $${userBalance}`);
+    } 
+    // Check if the user's bet was successful for Over/Under
+    else if (userBet.choice === 'OVER_2.5') {
+        if (score[team1] + score[team2] > 2.5) {
+            userBalance += userBet.amount * odds[userBet.choice]; // Assuming 2:1 odds for Over
+            showMessage(`Congratulations! You won on Over 2.5! New balance: $${userBalance}`);
+        } else {
+            showMessage(`You lost on Over 2.5. Final Score: ${score[team1]} - ${score[team2]}`);
+        }
+    } 
+    else if (userBet.choice === 'UNDER_2.5') {
+        if (score[team1] + score[team2] < 2.5) {
+            userBalance += userBet.amount * odds[userBet.choice]; // Assuming 2:1 odds for Under
+            showMessage(`Congratulations! You won on Under 2.5! New balance: $${userBalance}`);
+        } else {
+            showMessage(`You lost on Under 2.5. Final Score: ${score[team1]} - ${score[team2]}`);
+        }
+    } 
+    else {
+        showMessage(`You lost the match bet. Final Score: ${score[team1]} - ${score[team2]}`);
+    }
+
+    document.getElementById("userBalance").textContent = userBalance;
+
+  postmatchDiv.innerHTML = `
+    <h2>Match Results</h2>
+    <p>${decodeURIComponent(team1)}: ${score[team1]} - ${decodeURIComponent(team2)}: ${score[team2]}</p>
+    <p>Your Balance: $${userBalance.toFixed(2)}</p>
+    <p>Bet Result: ${userBet.choice === result ? "Win" : "Loss"}</p>
+  `;
+
+  setTimeout(startCountdown, 5000); // Start countdown for the next match
 }
+
 
 function startCountdown() {
   var countdownDiv = document.getElementById("countdown");
@@ -195,7 +325,7 @@ function run() {
     return;
   }
 
-  var r = getRandomDifferent(arr);
+  var r = getRandomClip();
   var thing = getRandomDifferent(things);
   var team = getRandomDifferent(teams);
   
@@ -248,12 +378,13 @@ updateScoreboard();
 
 function resetMatch() {
   console.log("Resetting the match...");
+  userBet = { amount: 0, choice: null }; // Reset bet details
 
-  // Reset ομάδες, σκορ και odds για το νέο ματς
+  // Other reset logic as before
   team1 = getRandomDifferent(allTeams);
   team2 = getRandomDifferent(allTeams, team1);
   teams = [team1, team2];
-  
+
   score = {
     [team1]: 0,
     [team2]: 0
@@ -268,16 +399,14 @@ function resetMatch() {
     exact: (Math.random() * (20 - 5) + 5).toFixed(2)
   };
 
-  // Επαναφορά φάσεων και ενημέρωση του πίνακα σκορ
   currentPhase = 0;
-  totalPhases = Math.floor(Math.random() * 6) + 5;  // Νέος τυχαίος αριθμός φάσεων για το νέο ματς
-  
-  updateScoreboard(true);  // Ενημέρωση του πίνακα σκορ για το νέο ματς
+  totalPhases = Math.floor(Math.random() * 6) + 5;
 
-  // Εμφανίζουμε την προεπισκόπηση του νέου ματς
+  updateScoreboard(true);
   document.getElementById("postmatch").style.display = "none";
-  showPreMatch();  // Καλούμε τη συνάρτηση για να ξεκινήσει η προεπισκόπηση του νέου ματς
+  showPreMatch();
 }
+
 
 </script>
 </body>
